@@ -7,7 +7,9 @@ The architecture is described using the C4 model to provide a clear and structur
 ## 1. System Context
 The system context diagram illustrates the interaction between the user and the local file search engine. The user submits search queries to the system, which processes them by accessing data from the local file system. The system indexes file content and metadata to provide relevant search results.
 
-![System Context](SystemContext.png)
+<p align="center">
+  <img src="SystemContext.png" alt="System Context" />
+</p>
 
 ### Actor
 
