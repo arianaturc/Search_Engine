@@ -59,11 +59,8 @@ The container diagram illustrates the main building blocks of the Local File Sea
 
 ## 3. Component (C4 Level 3)
 
-### Description
-
 The component diagrams present the internal structure of the main containers in the system. They show how responsibilities are divided between components and how these components collaborate to perform indexing and search operations.
 
----
 
 ## Indexer Components
 
