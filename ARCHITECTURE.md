@@ -57,7 +57,7 @@ The container diagram illustrates the main building blocks of the Local File Sea
   Acts as the source of data for the system, providing access to files and metadata that are read and indexed by the indexer.
 
 
-## C4 Level 3 – Component Diagrams
+## 3. Component (C4 Level 3)
 
 ### Description
 
