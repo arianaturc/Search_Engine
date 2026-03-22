@@ -55,3 +55,66 @@ The container diagram illustrates the main building blocks of the Local File Sea
 
 * **Local File System**
   Acts as the source of data for the system, providing access to files and metadata that are read and indexed by the indexer.
+
+
+## C4 Level 3 – Component Diagrams
+
+### Description
+
+The component diagrams present the internal structure of the main containers in the system. They show how responsibilities are divided between components and how these components collaborate to perform indexing and search operations.
+
+---
+
+## Indexer Components
+
+<p align="center">
+  <img src="Component1.png" alt="Component" />
+</p>
+
+
+### Components
+
+* **Directory Crawler**
+  Traverses the local file system and discovers files and directories to be processed.
+
+* **Extractor**
+  Processes discovered files and extracts relevant content and metadata required for indexing.
+
+* **Database Access**
+  Handles storing extracted data in the database and managing interactions with the storage layer.
+
+* **Incremental Update Monitor (Optional)**
+  Observes changes in the file system and triggers updates to keep indexed data consistent.
+
+### Interactions
+
+* The Directory Crawler reads data from the local file system.
+* The Extractor receives discovered files and processes their content and metadata.
+* The Database Access component stores indexed data in the SQLite database.
+* The Incremental Update Monitor detects file changes and triggers reprocessing when needed.
+
+---
+
+## Search Service Components
+
+<p align="center">
+  <img src="Component2.png" alt="Component" />
+</p>
+
+### Components
+
+* **Query Processor**
+  Processes user search queries and prepares them for execution.
+
+* **Search Repository**
+  Retrieves matching data from the database based on processed queries.
+
+* **Result Formatter**
+  Formats search results and prepares them for presentation to the user.
+
+### Interactions
+
+* The User Interface sends search queries to the Query Processor.
+* The Query Processor forwards processed queries to the Search Repository.
+* The Search Repository retrieves matching results from the SQLite database.
+* The Result Formatter prepares the results and sends them back to the User Interface.
