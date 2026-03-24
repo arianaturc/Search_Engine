@@ -8,7 +8,7 @@ The architecture is described using the C4 model to provide a clear and structur
 The system context diagram illustrates the interaction between the user and the local file search engine. The user submits search queries to the system, which processes them by accessing data from the local file system. The system indexes file content and metadata to provide relevant search results.
 
 <p align="center">
-  <img src="SystemContext.png" alt="System Context" />
+  <img src="c4Diagrams/SystemContext.png" alt="System Context" />
 </p>
 
 ### Actor
@@ -18,7 +18,7 @@ The system context diagram illustrates the interaction between the user and the 
 
 ### External Dependencies
 - **Database Management System (DBMS)**  
-  Stores indexed file data and supports query processing. The system uses PostgreSQL as the database, which plays a key role in enabling fast and reliable search operations.
+  Stores indexed file data and supports query processing. The system uses SQLite as the database, which plays a key role in enabling fast and reliable search operations.
 
 - **Operating System File System**  
   Provides access to files, directories, and metadata that are read and indexed by the system. 
@@ -35,7 +35,7 @@ The system context diagram illustrates the interaction between the user and the 
 The container diagram illustrates the main building blocks of the Local File Search Engine and how they interact. It shows how user requests are handled, how data is indexed from the local file system, and how search operations are performed using the database.
 
 <p align="center">
-  <img src="Containers.png" alt="Containers" />
+  <img src="c4Diagrams/Containers.png" alt="Containers" />
 </p>
 
 
@@ -65,7 +65,7 @@ The component diagrams present the internal structure of the main containers in 
 ## Indexer Components
 
 <p align="center">
-  <img src="Component1.png" alt="Component" />
+  <img src="c4Diagrams/Component1.png" alt="Component" />
 </p>
 
 
@@ -95,7 +95,7 @@ The component diagrams present the internal structure of the main containers in 
 ## Search Service Components
 
 <p align="center">
-  <img src="Component2.png" alt="Component" />
+  <img src="c4Diagrams/Component2.png" alt="Component" />
 </p>
 
 ### Components
@@ -115,3 +115,10 @@ The component diagrams present the internal structure of the main containers in 
 * The Query Processor forwards processed queries to the Search Repository.
 * The Search Repository retrieves matching results from the SQLite database.
 * The Result Formatter prepares the results and sends them back to the User Interface.
+
+
+## 4. Class Diagram (C4 Level 4)
+
+The final level of the C4 model focuses on the internal structure of components, describing the system in terms of classes and their relationships.
+
+Since this level represents low-level design closely tied to the implementation, it will be developed gradually throughout the project iterations.
