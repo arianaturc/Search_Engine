@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Search_Engine:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Search_Engine_jar</output-path>
+    <root id="archive" name="Search_Engine.jar">
+      <element id="module-output" name="Search_Engine" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/sqlite-jdbc-3.51.3.0.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
