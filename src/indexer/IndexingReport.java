@@ -6,18 +6,26 @@ import java.time.Instant;
 public class IndexingReport {
 
     private final Instant startTime = Instant.now();
-    private int indexed  = 0;
-    private int skipped  = 0;
-    private int failed   = 0;
+    private int indexed = 0;
+    private int skipped = 0;
+    private int failed = 0;
+    private int unchanged = 0;
+    private int removed = 0;
 
-    public void recordIndexed()  {
+    public void recordIndexed() {
         indexed++;
     }
-    public void recordSkipped()  {
+    public void recordSkipped() {
         skipped++;
     }
-    public void recordFailed()   {
+    public void recordFailed() {
         failed++;
+    }
+    public void recordUnchanged() {
+        unchanged++;
+    }
+    public void recordRemoved() {
+        removed++;
     }
 
     public String generate(String format) {
@@ -27,23 +35,27 @@ public class IndexingReport {
         if (format.equals("json")) {
             return String.format("""
                 {
-                  "indexed": %d,
-                  "skipped": %d,
-                  "failed":  %d,
-                  "duration": "%ds"
+                  "indexed":   %d,
+                  "unchanged": %d,
+                  "skipped":   %d,
+                  "removed":   %d,
+                  "failed":    %d,
+                  "duration":  "%ds"
                 }
-                """, indexed, skipped, failed, seconds);
+                """, indexed, unchanged, skipped, removed, failed, seconds);
         }
 
         return String.format("""
                 ════════════════════════════════════════
                            INDEXING REPORT
                 ════════════════════════════════════════
-                  Indexed:  %d files
-                  Skipped:  %d files
-                  Failed:   %d files
-                  Duration: %d seconds
+                  Indexed:    %d files (new/modified)
+                  Unchanged:  %d files (skipped)
+                  Skipped:    %d files (unreadable)
+                  Removed:    %d files (deleted from disk)
+                  Failed:     %d files
+                  Duration:   %d seconds
                 ════════════════════════════════════════
-                """, indexed, skipped, failed, seconds);
+                """, indexed, unchanged, skipped, removed, failed, seconds);
     }
 }
