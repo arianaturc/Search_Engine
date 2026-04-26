@@ -25,17 +25,22 @@ public class SearchService implements SearchEngine {
 
         List<SearchResult> results;
 
-        boolean hasQualifiers = !parsed.getPathTerms().isEmpty()
-                || !parsed.getContentTerms().isEmpty()
-                || !parsed.getExtTerms().isEmpty()
-                || !parsed.getTagTerms().isEmpty();
+        try {
+            boolean hasQualifiers = !parsed.getPathTerms().isEmpty()
+                    || !parsed.getContentTerms().isEmpty()
+                    || !parsed.getExtTerms().isEmpty()
+                    || !parsed.getTagTerms().isEmpty();
 
-        if (hasQualifiers) {
-            results = repository.search(parsed, processor);
-        } else {
-            String ftsQuery = processor.buildFtsQuery(parsed.getGeneralTerms());
-            if (ftsQuery.isBlank()) return List.of();
-            results = repository.search(ftsQuery);
+            if (hasQualifiers) {
+                results = repository.search(parsed, processor);
+            } else {
+                String ftsQuery = processor.buildFtsQuery(parsed.getGeneralTerms());
+                if (ftsQuery.isBlank()) return List.of();
+                results = repository.search(ftsQuery);
+            }
+        } catch (Exception e) {
+            System.err.println("Search error (likely incomplete query): " + e.getMessage());
+            return List.of();
         }
 
         results = rankingStrategy.rank(results, rawQuery);
