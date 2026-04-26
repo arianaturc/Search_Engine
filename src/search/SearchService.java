@@ -57,10 +57,6 @@ public class SearchService implements SearchEngine {
         observers.add(observer);
     }
 
-    public void removeObserver(SearchObserver observer) {
-        observers.remove(observer);
-    }
-
     private void notifyObservers(String query, List<SearchResult> results) {
         for (SearchObserver observer : observers) {
             observer.onSearch(query, results);
