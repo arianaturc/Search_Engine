@@ -10,6 +10,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/// coordinated the entire indexing pipeline, checks if the discovered files have been changed,
+/// extracts changed or new files, and updates/insert them into the database while unchanged files are skipped
 public class IndexingService {
 
     private final Config config;
@@ -25,6 +27,7 @@ public class IndexingService {
         Crawler crawler = new DirectoryCrawler(config);
         FileExtractor extractor = new Extractor();
         IndexingReport report = new IndexingReport();
+        PathScorer scorer = new PathScorer();
 
         List<Path> files;
         try {
@@ -54,6 +57,17 @@ public class IndexingService {
 
             FileRecord record = extractor.extract(file);
             if (record != null) {
+
+                double pathScore = scorer.score(record);
+                FileRecord scoredRecord = new FileRecord(
+                        record.path(), record.name(), record.extension(),
+                        record.size(), record.lastModified(), record.createdAt(),
+                        record.isHidden(), record.isReadable(),
+                        record.mimeType(), record.tags(),
+                        record.content(), record.preview(),
+                        pathScore
+                );
+
                 try {
                     fileRepository.insertOrUpdate(record);
                     report.recordIndexed();
