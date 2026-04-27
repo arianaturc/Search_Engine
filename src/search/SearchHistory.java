@@ -1,14 +1,25 @@
 package search;
 
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class SearchHistory implements SearchObserver{
+public class SearchHistory implements SearchObserver, Serializable {
+    @Serial
+    private static final long serialVersionUID = 1L;
+
     private final List<HistoryEntry> history = new ArrayList<>();
     private final Map<String, Integer> fileAccessCounts = new LinkedHashMap<>();
     private static final int MAX_HISTORY = 500;
 
-    public record HistoryEntry(String query, long timestamp) {}
+    private static final String DEFAULT_PATH = "data/search_history.txt";
+
+    public record HistoryEntry(String query, long timestamp) implements Serializable {
+        @Serial
+        private static final long serialVersionUID = 1L;
+    }
 
     @Override
     public void onSearch(String query, List<SearchResult> results) {
@@ -56,16 +67,51 @@ public class SearchHistory implements SearchObserver{
         return fileAccessCounts.getOrDefault(filePath, 0);
     }
 
-    public Map<String, Integer> getFileAccessCounts() {
-        return Collections.unmodifiableMap(fileAccessCounts);
+    public void save() {
+        save(DEFAULT_PATH);
     }
 
-    public int getTotalSearches() {
-        return history.size();
+    public void save(String filePath) {
+        try {
+            Path parent = Path.of(filePath).getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(filePath))) {
+                out.writeObject(history);
+                out.writeObject(fileAccessCounts);
+            }
+            System.out.println("Search history saved (" + history.size() + " entries).");
+        } catch (IOException e) {
+            System.err.println("Could not save search history: " + e.getMessage());
+        }
     }
 
-    public void clear() {
-        history.clear();
-        fileAccessCounts.clear();
+    public static SearchHistory load() {
+        return load(DEFAULT_PATH);
     }
+
+    public static SearchHistory load(String filePath) {
+        SearchHistory loaded = new SearchHistory();
+
+        if (!Files.exists(Path.of(filePath))) {
+            System.out.println("No saved search history found.");
+            return loaded;
+        }
+
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(filePath))) {
+            List<HistoryEntry> savedHistory = (List<HistoryEntry>) in.readObject();
+            Map<String, Integer> savedCounts = (Map<String, Integer>) in.readObject();
+
+            loaded.history.addAll(savedHistory);
+            loaded.fileAccessCounts.putAll(savedCounts);
+
+            System.out.println("Search history loaded (" + loaded.history.size() + " entries).");
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Could not load search history: " + e.getMessage());
+        }
+
+        return loaded;
+    }
+
 }
