@@ -9,11 +9,13 @@ public class SearchService implements SearchEngine {
     private final SearchRepository repository;
     private final List<SearchObserver> observers = new ArrayList<>();
     private RankingStrategy rankingStrategy;
+    private final SnippetExtractor snippetExtractor;
 
     public SearchService(SearchRepository repository) {
         this.processor  = new QueryProcessor();
         this.repository = repository;
         this.rankingStrategy = new RelevanceRanking();
+        this.snippetExtractor = new SnippetExtractor();
     }
 
     @Override
@@ -42,6 +44,7 @@ public class SearchService implements SearchEngine {
             System.err.println("Search error (likely incomplete query): " + e.getMessage());
             return List.of();
         }
+        results = applySnippets(results, rawQuery);
 
         results = rankingStrategy.rank(results, rawQuery);
 
@@ -66,5 +69,22 @@ public class SearchService implements SearchEngine {
         for (SearchObserver observer : observers) {
             observer.onSearch(query, results);
         }
+    }
+
+    private List<SearchResult> applySnippets(List<SearchResult> results, String rawQuery) {
+        List<SearchResult> enriched = new ArrayList<>();
+        for (SearchResult r : results) {
+            if (r.content() != null && !r.content().isBlank()) {
+                SnippetExtractor.SnippetResult snippetResult =
+                        snippetExtractor.extract(r.content(), rawQuery);
+                enriched.add(r.withSnippet(
+                        snippetResult.highlightedSnippet(),
+                        snippetResult.positionScore()
+                ));
+            } else {
+                enriched.add(r);
+            }
+        }
+        return enriched;
     }
 }
