@@ -27,13 +27,20 @@ public class ResultFormatter implements Formatter{
             sb.append("   Size:     ").append(formatSize(r.size())).append("\n");
             sb.append("   Modified: ")
                     .append(DATE_FORMAT.format(new Date(r.lastModified()))).append("\n");
+            sb.append("   Score:    ")
+                    .append(String.format("Total Score: %.1f", r.pathScore() + r.positionScore()))
+                    .append("\n");
 
-            if (r.preview() != null && !r.preview().isBlank()) {
+            if (r.snippet() != null && !r.snippet().isBlank()) {
+                sb.append("   Snippet:\n");
+                sb.append(r.snippet());
+            } else if (r.preview() != null && !r.preview().isBlank()) {
                 sb.append("   Preview:\n");
                 for (String line : r.preview().split("\n")) {
                     sb.append("      ").append(line).append("\n");
                 }
             }
+
             sb.append("─".repeat(60)).append("\n");
         }
 
