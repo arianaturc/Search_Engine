@@ -2,6 +2,7 @@ import config.Config;
 import database.DatabaseManager;
 import database.FileRepository;
 import indexer.IndexingService;
+import search.SearchHistory;
 import search.SearchRepository;
 import search.SearchService;
 import ui.CLI;
@@ -42,9 +43,20 @@ public class Main {
         SearchRepository searchRepo  = new SearchRepository(db.getConnection(), config.getMaxResults());
         SearchService    searchService = new SearchService(searchRepo);
 
-        SwingUtilities.invokeLater(() -> new GUI(searchService, config, fileRepository, indexingService).start());
+        SearchHistory searchHistory = SearchHistory.load();
+        searchService.addObserver(searchHistory);
 
-        Thread cliThread = new Thread(() -> new CLI(searchService).start());
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            searchHistory.save();
+            try {
+                db.close();
+            }
+            catch (Exception ignored) {}
+        }));
+
+        SwingUtilities.invokeLater(() -> new GUI(searchService, config, fileRepository, indexingService, searchHistory).start());
+
+        Thread cliThread = new Thread(() -> new CLI(searchService, searchHistory).start());
         cliThread.setDaemon(true);
         cliThread.start();
     }
