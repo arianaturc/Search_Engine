@@ -19,6 +19,7 @@ public class HistoryBoostedRanking implements RankingStrategy {
     public List<SearchResult> rank(List<SearchResult> results, String query) {
         results.sort(Comparator.comparingDouble((SearchResult r) -> {
             double score = r.pathScore();
+            score += r.positionScore();
 
             int accessCount = searchHistory.getAccessCount(r.path());
             score += accessCount * 5.0;

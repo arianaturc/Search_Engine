@@ -13,6 +13,7 @@ public class RelevanceRanking implements RankingStrategy{
     public List<SearchResult> rank(List<SearchResult> results, String query) {
         results.sort(Comparator.comparingDouble((SearchResult r) -> {
             double score = r.pathScore();
+            score += r.positionScore();
 
             if (query != null && !query.isBlank()) {
                 String nameLower = r.name().toLowerCase();
