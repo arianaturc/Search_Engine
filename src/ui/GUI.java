@@ -3,15 +3,14 @@ package ui;
 import config.Config;
 import database.FileRepository;
 import indexer.IndexingService;
-import search.Formatter;
-import search.ResultFormatter;
-import search.SearchResult;
-import search.SearchService;
+import search.*;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -22,14 +21,27 @@ public class GUI {
     private final Config          config;
     private final FileRepository  fileRepository;
     private final IndexingService indexingService;
+    private final SearchHistory searchHistory;
     private final Formatter       formatter = new ResultFormatter();
 
+    private final RankingStrategy[] strategies;
+
     public GUI(SearchService searchService, Config config,
-               FileRepository fileRepository, IndexingService indexingService) {
+               FileRepository fileRepository, IndexingService indexingService,
+               SearchHistory searchHistory) {
         this.searchService   = searchService;
         this.config          = config;
         this.fileRepository  = fileRepository;
         this.indexingService = indexingService;
+        this.searchHistory   = searchHistory;
+
+        this.strategies = new RankingStrategy[]{
+                new RelevanceRanking(),
+                new AlphabeticalRanking(),
+                new DateRanking(),
+                new SizeRanking(),
+                new HistoryBoostedRanking(searchHistory)
+        };
     }
 
     public void start() {
@@ -48,6 +60,13 @@ public class GUI {
         JComboBox<String> reportFormatBox = new JComboBox<>(new String[]{"text", "json"});
         reportFormatBox.setSelectedItem(config.getReportFormat());
 
+        String[] strategyNames = new String[strategies.length];
+        for (int i = 0; i < strategies.length; i++) {
+            strategyNames[i] = strategies[i].getName();
+        }
+        JComboBox<String> rankingBox = new JComboBox<>(strategyNames);
+        rankingBox.setSelectedIndex(0);
+
         configPanel.add(createFieldRow("Root Directory:",      rootField));
         configPanel.add(Box.createVerticalStrut(5));
         configPanel.add(createFieldRow("Ignored Extensions:",  ignoreExtField));
@@ -55,6 +74,8 @@ public class GUI {
         configPanel.add(createFieldRow("Max Results:",         maxResultsField));
         configPanel.add(Box.createVerticalStrut(5));
         configPanel.add(createFieldRow("Report Format:",       reportFormatBox));
+        configPanel.add(Box.createVerticalStrut(5));
+        configPanel.add(createFieldRow("Ranking Strategy:",    rankingBox));
         configPanel.add(Box.createVerticalStrut(8));
 
         JButton reindexButton = new JButton("Re-Index");
@@ -68,6 +89,22 @@ public class GUI {
                 BorderFactory.createLineBorder(Color.GRAY),
                 BorderFactory.createEmptyBorder(5, 10, 5, 10)
         ));
+
+        DefaultListModel<String> suggestionModel = new DefaultListModel<>();
+        JList<String> suggestionList = new JList<>(suggestionModel);
+        suggestionList.setFont(new Font("Arial", Font.PLAIN, 14));
+        suggestionList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane suggestionScroll = new JScrollPane(suggestionList);
+        suggestionScroll.setPreferredSize(new Dimension(0, 120));
+        suggestionScroll.setVisible(false);
+
+        suggestionList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && suggestionList.getSelectedValue() != null) {
+                searchBar.setText(suggestionList.getSelectedValue());
+                suggestionScroll.setVisible(false);
+                searchBar.requestFocusInWindow();
+            }
+        });
 
         JPanel searchPanel = new JPanel(new BorderLayout());
         searchPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 0, 10));
@@ -92,6 +129,21 @@ public class GUI {
         statusBar.setBorder(BorderFactory.createEmptyBorder(0, 10, 5, 10));
         statusBar.setForeground(Color.GRAY);
 
+        rankingBox.addActionListener(e -> {
+            int selectedIndex = rankingBox.getSelectedIndex();
+            searchService.setRankingStrategy(strategies[selectedIndex]);
+            statusBar.setText("Ranking: " + strategies[selectedIndex].getName());
+
+            String input = searchBar.getText();
+            if (!input.isBlank()) {
+                List<SearchResult> results = searchService.search(input);
+                resultsArea.setText(formatter.format(results));
+                resultsArea.setCaretPosition(0);
+                statusBar.setText("Found " + results.size() + " result(s) | Ranking: "
+                        + strategies[selectedIndex].getName());
+            }
+        });
+
         searchBar.getDocument().addDocumentListener(new DocumentListener() {
             @Override public void insertUpdate(DocumentEvent e)  { runSearch(); }
             @Override public void removeUpdate(DocumentEvent e)  { runSearch(); }
@@ -101,13 +153,36 @@ public class GUI {
                 String input = searchBar.getText();
                 if (input.isBlank()) {
                     resultsArea.setText("");
-                    statusBar.setText("Ready.");
+                    statusBar.setText("Ready. | Ranking: " + searchService.getRankingStrategy().getName());
+                    suggestionScroll.setVisible(false);
                     return;
                 }
+
+                List<String> suggestions = searchHistory.suggest(input);
+                suggestionModel.clear();
+                if (!suggestions.isEmpty()) {
+                    for (String s : suggestions) {
+                        suggestionModel.addElement(s);
+                    }
+                    suggestionScroll.setVisible(true);
+                } else {
+                    suggestionScroll.setVisible(false);
+                }
+
                 List<SearchResult> results = searchService.search(input);
                 resultsArea.setText(formatter.format(results));
                 resultsArea.setCaretPosition(0);
-                statusBar.setText("Found " + results.size() + " result(s) for: " + input);
+                statusBar.setText("Found " + results.size() + " result(s) for: " + input
+                        + " | Ranking: " + searchService.getRankingStrategy().getName());
+            }
+        });
+
+        searchBar.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                    suggestionScroll.setVisible(false);
+                }
             }
         });
 
@@ -146,7 +221,8 @@ public class GUI {
                 protected void done() {
                     try {
                         resultsArea.setText(get());
-                        statusBar.setText("Re-indexing complete.");
+                        statusBar.setText("Re-indexing complete. | Ranking: "
+                                + searchService.getRankingStrategy().getName());
                     } catch (Exception ex) {
                         resultsArea.setText("Re-indexing failed: " + ex.getMessage());
                         statusBar.setText("Re-indexing failed.");
