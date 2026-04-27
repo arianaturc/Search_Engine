@@ -49,7 +49,6 @@ public class SearchRepository {
         return results;
     }
 
-
     public List<SearchResult> search(QueryProcessor.ParsedQuery parsedQuery, QueryProcessor processor) {
         List<SearchResult> results = new ArrayList<>();
 
