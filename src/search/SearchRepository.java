@@ -25,12 +25,12 @@ public class SearchRepository {
 
         String sql = """
             SELECT f.path, f.name, f.extension, f.size,
-                   f.last_modified, f.tags, f.preview
+                   f.last_modified, f.tags, f.preview, f.path_score, f.content
             FROM files f
             JOIN files_fts fts ON f.id = fts.rowid
             WHERE files_fts MATCH ?
             GROUP BY f.name, f.size
-            ORDER BY rank
+            ORDER BY f.path_score DESC, rank
             LIMIT ?;
         """;
 
@@ -40,15 +40,7 @@ public class SearchRepository {
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
-                results.add(new SearchResult(
-                        rs.getString("path"),
-                        rs.getString("name"),
-                        rs.getString("extension"),
-                        rs.getLong("size"),
-                        rs.getLong("last_modified"),
-                        rs.getString("tags"),
-                        rs.getString("preview")
-                ));
+                results.add(mapResult(rs));
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -71,7 +63,7 @@ public class SearchRepository {
                 || !parsedQuery.getContentTerms().isEmpty();
 
         sql.append("SELECT f.path, f.name, f.extension, f.size, ");
-        sql.append("f.last_modified, f.tags, f.preview, f.path_score ");
+        sql.append("f.last_modified, f.tags, f.preview, f.path_score, f.content ");
         sql.append("FROM files f ");
 
         if (needsFts) {
@@ -153,7 +145,8 @@ public class SearchRepository {
                 rs.getLong("last_modified"),
                 rs.getString("tags"),
                 rs.getString("preview"),
-                rs.getDouble("path_score")
+                rs.getDouble("path_score"),
+                rs.getString("content") != null ? rs.getString("content") : ""
         );
     }
 }
