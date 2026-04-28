@@ -29,7 +29,8 @@ public class FileRepository {
                 mime_type     TEXT,
                 tags          TEXT,
                 content       TEXT,
-                preview       TEXT
+                preview       TEXT,
+                path_score    REAL DEFAULT 0.0
             );
         """;
 
@@ -71,6 +72,22 @@ public class FileRepository {
             stmt.execute(createUpdateTrigger);
             stmt.execute(createDeleteTrigger);
         }
+
+        addColumnIfMissing("path_score", "REAL DEFAULT 0.0");
+    }
+
+    private void addColumnIfMissing(String columnName, String columnDef) throws SQLException {
+        try (Statement stmt = db.getConnection().createStatement();
+             ResultSet rs = stmt.executeQuery("PRAGMA table_info(files);")) {
+            while (rs.next()) {
+                if (rs.getString("name").equals(columnName)) {
+                    return;
+                }
+            }
+        }
+        try (Statement stmt = db.getConnection().createStatement()) {
+            stmt.execute("ALTER TABLE files ADD COLUMN " + columnName + " " + columnDef + ";");
+        }
     }
 
     public void insertOrUpdate(FileRecord record) throws SQLException {
@@ -78,8 +95,8 @@ public class FileRepository {
         String sql = """
             INSERT INTO files
                 (path, name, extension, size, last_modified, created_at,
-                 is_hidden, is_readable, mime_type, tags, content, preview)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 is_hidden, is_readable, mime_type, tags, content, preview, path_score)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(path) DO UPDATE SET
                 name          = excluded.name,
                 extension     = excluded.extension,
@@ -90,7 +107,8 @@ public class FileRepository {
                 mime_type     = excluded.mime_type,
                 tags          = excluded.tags,
                 content       = excluded.content,
-                preview       = excluded.preview;
+                preview       = excluded.preview,
+                path_score    = excluded.path_score;
         """;
 
         try (PreparedStatement stmt = db.getConnection().prepareStatement(sql)) {
@@ -106,6 +124,7 @@ public class FileRepository {
             stmt.setString(10, record.tags());
             stmt.setString(11, record.content());
             stmt.setString(12, record.preview());
+            stmt.setDouble(13, record.pathScore());
             stmt.executeUpdate();
         }
     }
