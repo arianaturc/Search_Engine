@@ -14,7 +14,8 @@ public record FileRecord(
         String  tags,
         String  content,
         String  preview,
-        double pathScore
+        double pathScore,
+        String dominantColor
 ) {
     public FileRecord( String path, String name, String extension, long size,
                        long lastModified, long createdAt, boolean isHidden,
@@ -23,7 +24,7 @@ public record FileRecord(
     ) {
 
         this(path, name, extension, size, lastModified, createdAt,
-                isHidden, isReadable, mimeType, tags, content, preview, 0.0);
+                isHidden, isReadable, mimeType, tags, content, preview, 0.0, "");
     }
 
 }
