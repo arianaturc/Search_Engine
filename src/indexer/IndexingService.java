@@ -65,11 +65,11 @@ public class IndexingService {
                         record.isHidden(), record.isReadable(),
                         record.mimeType(), record.tags(),
                         record.content(), record.preview(),
-                        pathScore
+                        pathScore, record.dominantColor()
                 );
 
                 try {
-                    fileRepository.insertOrUpdate(record);
+                    fileRepository.insertOrUpdate(scoredRecord);
                     report.recordIndexed();
                 } catch (Exception e) {
                     System.err.println("Failed to insert: " + file + " (" + e.getMessage() + ")");
