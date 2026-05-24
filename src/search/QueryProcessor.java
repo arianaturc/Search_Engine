@@ -11,17 +11,20 @@ public class QueryProcessor {
         private final List<String> contentTerms = new ArrayList<>();
         private final List<String> extTerms = new ArrayList<>();
         private final List<String> tagTerms = new ArrayList<>();
+        private final List<String> colorTerms = new ArrayList<>();
 
         public List<String> getGeneralTerms()  { return generalTerms; }
         public List<String> getPathTerms()     { return pathTerms; }
         public List<String> getContentTerms()  { return contentTerms; }
         public List<String> getExtTerms()      { return extTerms; }
         public List<String> getTagTerms()      { return tagTerms; }
+        public List<String> getColorTerms()    { return colorTerms; }
+
 
         public boolean isEmpty() {
             return generalTerms.isEmpty() && pathTerms.isEmpty()
                     && contentTerms.isEmpty() && extTerms.isEmpty()
-                    && tagTerms.isEmpty();
+                    && tagTerms.isEmpty() && colorTerms.isEmpty();
         }
     }
 
@@ -49,6 +52,7 @@ public class QueryProcessor {
                     case "content" -> parsed.contentTerms.add(value);
                     case "ext"     -> parsed.extTerms.add(value);
                     case "tag"     -> parsed.tagTerms.add(value);
+                    case "color"   -> parsed.colorTerms.add(value.toLowerCase());
                     default        -> parsed.generalTerms.add(token);
                 }
             } else {
@@ -84,7 +88,6 @@ public class QueryProcessor {
         }
 
         String cleaned = rawQuery.strip().replaceAll("\\s+", " ");
-
 
         String[] terms = cleaned.split(" ");
         if (terms.length == 1) {
