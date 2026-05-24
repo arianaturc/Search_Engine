@@ -28,7 +28,8 @@ public class ResultFormatter implements Formatter{
             sb.append("   Modified: ")
                     .append(DATE_FORMAT.format(new Date(r.lastModified()))).append("\n");
             sb.append("   Score:    ")
-                    .append(String.format("Total Score: %.1f", r.pathScore() + r.positionScore()))
+                    .append(String.format("pathScore=%.1f  positionScore=%.1f  total=%.1f",
+                            r.pathScore(), r.positionScore(), r.pathScore() + r.positionScore()))
                     .append("\n");
 
             if (r.snippet() != null && !r.snippet().isBlank()) {
