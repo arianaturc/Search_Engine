@@ -5,22 +5,19 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.List;
 import java.util.Set;
 
 public class Extractor implements FileExtractor {
 
-    private static final Set<String> TEXT_EXTENSIONS = Set.of(
-            ".txt", ".java", ".py", ".js", ".ts", ".html", ".css",
-            ".xml", ".json", ".md", ".csv", ".yaml", ".yml", ".c",
-            ".cpp", ".h", ".sh", ".bat", ".log"
-    );
+    private final List<FileProcessingStrategy> strategies;
 
-    private static final Charset[] FALLBACK_CHARSETS = {
-            StandardCharsets.UTF_8,
-            Charset.forName("Windows-1250"),
-            Charset.forName("Windows-1252"),
-            Charset.forName("ISO-8859-2")
-    };
+    public Extractor() {
+        this.strategies = List.of(
+                new TextProcessingStrategy(),
+                new ImageProcessingStrategy()
+        );
+    }
 
     @Override
     public FileRecord extract(Path file) {
@@ -39,20 +36,32 @@ public class Extractor implements FileExtractor {
             String mimeType = probeMimeType(file);
             String tags = extractTags(extension, mimeType);
 
-            String[] contentAndPreview = extractContentAndPreview(file, extension, path);
+            FileProcessingStrategy.ProcessingResult processingResult = processFile(file, extension);
 
             return new FileRecord(
                     path, name, extension,
                     size, lastMod, createdAt,
                     isHidden, isReadable,
                     mimeType, tags,
-                    contentAndPreview[0], contentAndPreview[1]
+                    processingResult.content(),
+                    processingResult.preview(),
+                    0.0,
+                    processingResult.dominantColor()
             );
 
         } catch (IOException e) {
             System.err.println("Could not extract metadata: " + file);
             return null;
         }
+    }
+
+    private FileProcessingStrategy.ProcessingResult processFile(Path file, String extension) {
+        for (FileProcessingStrategy strategy : strategies) {
+            if (strategy.supports(extension)) {
+                return strategy.process(file, extension);
+            }
+        }
+        return new FileProcessingStrategy.ProcessingResult("", "", "");
     }
 
     private String probeMimeType(Path file) {
@@ -65,19 +74,6 @@ public class Extractor implements FileExtractor {
         }
     }
 
-    private String extractPreview(String content) {
-        String[] lines = content.split("\n");
-        StringBuilder preview = new StringBuilder();
-        int count = 0;
-        for (String line : lines) {
-            if (!line.isBlank() && count < 3) {
-                preview.append(line.strip()).append("\n");
-                count++;
-            }
-        }
-        return preview.toString().strip();
-    }
-
     private String extractTags(String extension, String mimeType) {
         return switch (extension.toLowerCase()) {
             case ".java", ".py", ".js", ".ts", ".c", ".cpp", ".h", ".sh", ".bat" -> "code";
@@ -85,40 +81,9 @@ public class Extractor implements FileExtractor {
             case ".json", ".xml", ".yaml", ".yml"                                -> "config";
             case ".html", ".css"                                                 -> "web";
             case ".csv"                                                          -> "data";
+            case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".tif" -> "image";
             default -> mimeType.contains("text") ? "text" : "binary";
         };
     }
 
-    private String[] extractContentAndPreview(Path file, String extension, String path) {
-        if (!TEXT_EXTENSIONS.contains(extension.toLowerCase())) {
-            return new String[]{"", ""};
-        }
-
-        String content = tryReadWithFallback(file);
-
-        if (content == null) {
-            System.err.println("Skipping unreadable file: " + path);
-            return new String[]{"", ""};
-        }
-
-        long nonPrintable = content.chars()
-                .filter(c -> c < 32 && c != '\n' && c != '\r' && c != '\t')
-                .count();
-        if (nonPrintable > 100) {
-            System.err.println("Skipping binary content (non-printable chars): " + path);
-            return new String[]{"", ""};
-        }
-
-        return new String[]{content, extractPreview(content)};
-    }
-
-    private String tryReadWithFallback(Path file) {
-        for (Charset charset : FALLBACK_CHARSETS) {
-            try {
-                return Files.readString(file, charset);
-            } catch (IOException ignored) {
-            }
-        }
-        return null;
-    }
 }
