@@ -74,6 +74,7 @@ public class FileRepository {
         }
 
         addColumnIfMissing("path_score", "REAL DEFAULT 0.0");
+        addColumnIfMissing("dominant_color", "TEXT DEFAULT ''");
     }
 
     private void addColumnIfMissing(String columnName, String columnDef) throws SQLException {
@@ -95,8 +96,8 @@ public class FileRepository {
         String sql = """
             INSERT INTO files
                 (path, name, extension, size, last_modified, created_at,
-                 is_hidden, is_readable, mime_type, tags, content, preview, path_score)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 is_hidden, is_readable, mime_type, tags, content, preview, path_score, dominant_color)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(path) DO UPDATE SET
                 name          = excluded.name,
                 extension     = excluded.extension,
@@ -108,7 +109,8 @@ public class FileRepository {
                 tags          = excluded.tags,
                 content       = excluded.content,
                 preview       = excluded.preview,
-                path_score    = excluded.path_score;
+                path_score    = excluded.path_score,
+                dominant_color = excluded.dominant_color;
         """;
 
         try (PreparedStatement stmt = db.getConnection().prepareStatement(sql)) {
@@ -125,6 +127,7 @@ public class FileRepository {
             stmt.setString(11, record.content());
             stmt.setString(12, record.preview());
             stmt.setDouble(13, record.pathScore());
+            stmt.setString(14, record.dominantColor());
             stmt.executeUpdate();
         }
     }
