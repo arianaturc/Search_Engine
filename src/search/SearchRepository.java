@@ -106,6 +106,13 @@ public class SearchRepository {
             }
         }
 
+        if (!parsedQuery.getColorTerms().isEmpty()) {
+            for (String term : parsedQuery.getColorTerms()) {
+                sql.append("AND LOWER(f.dominant_color) = ? ");
+                params.add(term.toLowerCase());
+            }
+        }
+
         sql.append("GROUP BY f.name, f.size ");
         sql.append("ORDER BY f.path_score DESC");
         if (needsFts) {
