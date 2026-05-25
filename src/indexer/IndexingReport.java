@@ -2,31 +2,22 @@ package indexer;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class IndexingReport {
 
     private final Instant startTime = Instant.now();
-    private int indexed = 0;
-    private int skipped = 0;
-    private int failed = 0;
-    private int unchanged = 0;
-    private int removed = 0;
+    private final AtomicInteger indexed   = new AtomicInteger(0);
+    private final AtomicInteger skipped   = new AtomicInteger(0);
+    private final AtomicInteger failed    = new AtomicInteger(0);
+    private final AtomicInteger unchanged = new AtomicInteger(0);
+    private final AtomicInteger removed   = new AtomicInteger(0);
 
-    public void recordIndexed() {
-        indexed++;
-    }
-    public void recordSkipped() {
-        skipped++;
-    }
-    public void recordFailed() {
-        failed++;
-    }
-    public void recordUnchanged() {
-        unchanged++;
-    }
-    public void recordRemoved() {
-        removed++;
-    }
+    public void recordIndexed() { indexed.incrementAndGet(); }
+    public void recordSkipped() { skipped.incrementAndGet(); }
+    public void recordFailed() { failed.incrementAndGet(); }
+    public void recordUnchanged() { unchanged.incrementAndGet(); }
+    public void recordRemoved() { removed.incrementAndGet(); }
 
     public String generate(String format) {
         Duration duration = Duration.between(startTime, Instant.now());
@@ -42,7 +33,8 @@ public class IndexingReport {
                   "failed":    %d,
                   "duration":  "%ds"
                 }
-                """, indexed, unchanged, skipped, removed, failed, seconds);
+                """, indexed.get(), unchanged.get(), skipped.get(),
+                    removed.get(), failed.get(), seconds);
         }
 
         return String.format("""
@@ -56,6 +48,7 @@ public class IndexingReport {
                   Failed:     %d files
                   Duration:   %d seconds
                 ════════════════════════════════════════
-                """, indexed, unchanged, skipped, removed, failed, seconds);
+                """, indexed.get(), unchanged.get(), skipped.get(),
+                removed.get(), failed.get(), seconds);
     }
 }
