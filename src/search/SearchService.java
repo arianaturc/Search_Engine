@@ -1,5 +1,9 @@
 package search;
 
+import search.decorator.*;
+import widget.Widget;
+import widget.WidgetFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,19 +14,33 @@ public class SearchService implements SearchEngine {
     private final List<SearchObserver> observers = new ArrayList<>();
     private RankingStrategy rankingStrategy;
     private final SnippetExtractor snippetExtractor;
+    private final WidgetFactory widgetFactory;
+    private List<Widget> activeWidgets = List.of();
+    private final QueryBuilder queryPipeline;
 
     public SearchService(SearchRepository repository) {
         this.processor  = new QueryProcessor();
         this.repository = repository;
         this.rankingStrategy = new RelevanceRanking();
         this.snippetExtractor = new SnippetExtractor();
+        this.widgetFactory = new WidgetFactory();
+        this.queryPipeline = new LogicDecorator(
+                new SynonymDecorator(
+                        new SanitizationDecorator(
+                                new BaseQueryBuilder()
+                        )
+                )
+        );
     }
 
     @Override
     public List<SearchResult> search(String rawQuery) {
         if (rawQuery == null || rawQuery.isBlank()) return List.of();
 
-        QueryProcessor.ParsedQuery parsed = processor.parse(rawQuery);
+        String processedQuery = queryPipeline.build(rawQuery);
+        if (processedQuery.isBlank()) return List.of();
+
+        QueryProcessor.ParsedQuery parsed = processor.parse(processedQuery);
         if (parsed.isEmpty()) return List.of();
 
         List<SearchResult> results;
@@ -31,12 +49,13 @@ public class SearchService implements SearchEngine {
             boolean hasQualifiers = !parsed.getPathTerms().isEmpty()
                     || !parsed.getContentTerms().isEmpty()
                     || !parsed.getExtTerms().isEmpty()
-                    || !parsed.getTagTerms().isEmpty();
+                    || !parsed.getTagTerms().isEmpty()
+                    || !parsed.getColorTerms().isEmpty();
 
             if (hasQualifiers) {
                 results = repository.search(parsed, processor);
             } else {
-                String ftsQuery = processor.buildFtsQuery(parsed.getGeneralTerms());
+                String ftsQuery = String.join(" ", parsed.getGeneralTerms());
                 if (ftsQuery.isBlank()) return List.of();
                 results = repository.search(ftsQuery);
             }
@@ -48,9 +67,15 @@ public class SearchService implements SearchEngine {
 
         results = rankingStrategy.rank(results, rawQuery);
 
+        activeWidgets = widgetFactory.getActiveWidgets(results, rawQuery);
+
         notifyObservers(rawQuery, results);
 
         return results;
+    }
+
+    public List<Widget> getActiveWidgets() {
+        return activeWidgets;
     }
 
     public void setRankingStrategy(RankingStrategy strategy) {
